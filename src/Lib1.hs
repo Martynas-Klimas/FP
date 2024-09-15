@@ -6,10 +6,12 @@ module Lib1
 -- to be autocompleted in your program's repl.
 completions :: [String]
 completions = [
-    "guitar-shop",
+    "guitar_shop",
     "inventory",
-    "item-list",
-    "add-item",
+    "item_list",
+    "add_guitar",
+    "add_amplifier",
+    "add_accessory",
 
     "guitar",
     "amplifier",

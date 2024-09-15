@@ -6,27 +6,34 @@ Each of the items has a name, price, the amount of such items in store (stock) a
 ### BNF Grammar
 
 ```bnf
-<guitar-shop> ::= <inventory>
+<guitar_shop> ::= <inventory>
 
-<inventory> ::= <item-list>
+<inventory> ::= <item_list>
 
-<item-list> ::= <guitar> <amplifier> <accessory>
+<item_list> ::= <guitar> <amplifier> <accessory>
 
-<add-item> ::= <guitar> | <amplifier> | <accessory>
+<add_guitar> ::= "AddGuitar(" <id> "," <name> "," <price> "," <stock> "," <type> ")"
+<add_amplifier> ::= "AddAmplifier(" <id> "," <name> "," <price> "," <stock> "," <type> ")"
+<add_accessory> ::= "AddAccessory(" <id> "," <name> "," <price> "," <stock> "," <type> ")"
 
-<guitar> ::= <name> <price> <stock> <type>
-<amplifier> ::= <name> <price> <stock> <type>
-<accessory> ::= <name> <price> <stock> <type>
 
+<guitar> ::= "Guitar(" <id> "," <name> "," <price> "," <stock> "," <type> ")"
+<amplifier> ::= "Amplifier(" <id> "," <name> "," <price> "," <stock> "," <type> ")"
+<accessory> ::= "Accessory(" <id> "," <name> "," <price> "," <stock> "," <type> ")"
+
+<id> ::= <int>
 <name> ::= <string>
 <stock> ::= <int>
 <price> ::= <int>
 <type> ::= <string>
 
-<string> ::= "" | <letter> <string>
+<string> ::= <letter> | <letter> <string>
 <int> ::= <digit> | <digit> <int>
 
-<letter> ::= "a" | "b" | "c" | ... | "z"
-<digit> ::= "0" | "1" | "2" | ... | "9"
+<letter> ::= "a" | "b" | "c" | "d" | "e" | "f" |
+"g" | "h" | "i" | "j" | "k" | "l" | "m" | "n" | "o" |
+"p" | "q" | "r" | "s" | "t" | "u" | "v" | "w" | "x" | "y" | "z"
 
-
+<digit> ::= "0" | "1" | "2" | "3" |
+"4" | "5" | "6" | "7" | "8" | "9"
+```
