@@ -18,7 +18,7 @@ completions = [
     "accessory",
 
     "name",
-    "price"
-    "stock"
+    "price",
+    "stock",
     "type"
-]
+    ]
