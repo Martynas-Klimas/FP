@@ -10,7 +10,7 @@ Each of the items has a name, price, the amount of such items in store (stock) a
 
 <inventory> ::= <item-list>
 
-<item-list> ::= <guitar> <amplifier> <accessory>
+<item-list> = <guitar> <amplifier> <accessory>
 
 <add-item> ::= <guitar> | <amplifier> | <accessory>
 
@@ -28,3 +28,5 @@ Each of the items has a name, price, the amount of such items in store (stock) a
 
 <letter> ::= "a" | "b" | "c" | ... | "z"
 <digit> ::= "0" | "1" | "2" | ... | "9"
+
+
