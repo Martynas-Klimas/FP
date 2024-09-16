@@ -15,16 +15,16 @@ Guitar shop has an inventory in which items such as guitars, amplifiers and othe
 ## Command examples:
 
 - Adding a guitar item:
+```
 <add_guitar> ::= "AddGuitar(" <id> "," <name> "," <price> "," <stock> "," <type> "," <related_guitar> ")"
 
-```plain text 
 AddGuitar(1,fender,1000,3,electric,none)
 ```
 
 - Adding an amplifier item with a related amplifier:
+```
 <add_amplifier> ::= "AddAmplifier(" <id> "," <name> "," <price> "," <stock> "," <type> ","<related_amplifier> ")"
 
-```plain text
 Amplifier(1, "Marshall JCM800", 900, 4, "Tube", Amplifier(2, "Fender Twin Reverb", 1300, 2, "Tube", None))
 ```
 
