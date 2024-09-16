@@ -9,6 +9,7 @@ completions = [
     "guitar_shop",
     "inventory",
     "item_list",
+    "item",
     "add_guitar",
     "add_amplifier",
     "add_accessory",
@@ -16,6 +17,9 @@ completions = [
     "guitar",
     "amplifier",
     "accessory",
+    "related_guitar",
+    "related_amplifier",
+    "related_accessory",
 
     "name",
     "price",

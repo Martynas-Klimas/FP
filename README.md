@@ -1,7 +1,32 @@
 # FP-2024 
-Application domain - guitar shop. Guitar shop has an inventory in which items such as guitars, amplifiers and other accesories are stored. It has a method by which it can add an item to its inventory.
+# Application domain - guitar shop. 
 
-Each of the items has a name, price, the amount of such items in store (stock) and type.
+Guitar shop has an inventory in which items such as guitars, amplifiers and other accesories are stored. It has a method by which it can add an item to its inventory.
+
+## Main components:
+1. item: Can be a guitar, amplifier or an accesory (pedal, pick, etc)
+
+2. add_guitar | add_amplifier | add_accessory: each of these methods adds a certain item to the inventory.
+
+3. guitar, amplifier, accesorry: each of the items has an id, name, price, stock, type and relates instrument which is the same type as itself.
+
+4. related instrument: Can be a guitar, amplifier, accesory or be "None" if an item doesn't have anything related to it.
+
+## Command examples:
+
+- Adding a guitar item:
+<add_guitar> ::= "AddGuitar(" <id> "," <name> "," <price> "," <stock> "," <type> "," <related_guitar> ")"
+
+```plain text 
+AddGuitar(1,fender,1000,3,electric,none)
+```
+
+- Adding an amplifier item with a related amplifier:
+<add_amplifier> ::= "AddAmplifier(" <id> "," <name> "," <price> "," <stock> "," <type> ","<related_amplifier> ")"
+
+```plain text
+Amplifier(1, "Marshall JCM800", 900, 4, "Tube", Amplifier(2, "Fender Twin Reverb", 1300, 2, "Tube", None))
+```
 
 ### BNF Grammar
 
@@ -10,16 +35,22 @@ Each of the items has a name, price, the amount of such items in store (stock) a
 
 <inventory> ::= <item_list>
 
-<item_list> ::= <guitar> <amplifier> <accessory>
+<item_list> ::= <item> | <item> <item_list>
+<item> ::= <guitar> <amplifier> <accessory>
 
-<add_guitar> ::= "AddGuitar(" <id> "," <name> "," <price> "," <stock> "," <type> ")"
-<add_amplifier> ::= "AddAmplifier(" <id> "," <name> "," <price> "," <stock> "," <type> ")"
-<add_accessory> ::= "AddAccessory(" <id> "," <name> "," <price> "," <stock> "," <type> ")"
+<add_guitar> ::= "AddGuitar(" <id> "," <name> "," <price> "," <stock> "," <type> "," <related_guitar> ")"
 
+<add_amplifier> ::= "AddAmplifier(" <id> "," <name> "," <price> "," <stock> "," <type> "," <related_amplifier> ")"
 
-<guitar> ::= "Guitar(" <id> "," <name> "," <price> "," <stock> "," <type> ")"
-<amplifier> ::= "Amplifier(" <id> "," <name> "," <price> "," <stock> "," <type> ")"
-<accessory> ::= "Accessory(" <id> "," <name> "," <price> "," <stock> "," <type> ")"
+<add_accessory> ::= "AddAccessory(" <id> "," <name> "," <price> "," <stock> "," <type> "," <related_accessory> ")"  
+
+<guitar> ::= "Guitar(" <id> "," <name> "," <price> "," <stock> "," <type> "," <related_guitar> ")"
+<amplifier> ::= "Amplifier(" <id> "," <name> "," <price> "," <stock> "," <type> "," <related_guitar> ")"
+<accessory> ::= "Accessory(" <id> "," <name> "," <price> "," <stock> "," <type> "," <related_guitar> ")"
+
+<related_guitar> ::= "none" | <guitar>
+<related_amplifier> ::= "none" | <amplifier>
+<related_accessory> ::= "none" | <accessory>
 
 <id> ::= <int>
 <name> ::= <string>
