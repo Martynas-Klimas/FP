@@ -18,7 +18,7 @@ Guitar shop has an inventory in which items such as guitars, amplifiers and othe
 ```
 <add_guitar> ::= "AddGuitar(" <id> "," <name> "," <price> "," <stock> "," <type> "," <related_guitar> ")"
 
-AddGuitar(1,fender,1000,3,electric,none)
+ AddGuitar(1,fender,1000,3,electric,none)
 ```
 
 - Adding an amplifier item with a related amplifier:

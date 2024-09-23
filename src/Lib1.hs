@@ -6,6 +6,7 @@ module Lib1
 -- to be autocompleted in your program's repl.
 completions :: [String]
 completions = [
+    -- main keywords
     "guitar_shop",
     "inventory",
     "item_list",
@@ -14,6 +15,7 @@ completions = [
     "add_amplifier",
     "add_accessory",
 
+    --items 
     "guitar",
     "amplifier",
     "accessory",
@@ -21,6 +23,7 @@ completions = [
     "related_amplifier",
     "related_accessory",
 
+    --properties
     "name",
     "price",
     "stock",
