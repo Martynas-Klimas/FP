@@ -15,8 +15,19 @@ unitTests :: TestTree
 unitTests = testGroup "Lib1 tests"
   [ testCase "List of completions is not empty" $
       null Lib1.completions @?= False,
-    testCase "Parsing case 1 - give a better name" $
-      Lib2.parseQuery "" @?= (Left "Some error message"),
-    testCase "Parsing case 2 - give a better name" $
-      Lib2.parseQuery "o" @?= (Left "Some error message")
+
+   testCase "Parse correct id" $
+      Lib2.parseId "123,abcd" @?= Right(123, "abcd"),
+   testCase "Parse incorrect id" $
+      Lib2.parseId "abcd123" @?= Left("not a number"),
+
+   testCase "Parse correct name" $
+      Lib2.parseName "Name,etc" @?= Right("Name", "etc"),
+   testCase "Parse incorrect name" $
+      Lib2.parseName "123,Name" @?= Left("Expected a word"),
+
+    testCase "Parsing AddGuitar command" $
+      isRight(Lib2.parseQuery "AddGuitar(1,Fender,200,2,Electric, none)") @?= True,
+    testCase "Parsing incorrect AddAmplifier command (should be none)" $
+      isLeft(Lib2.parseQuery "AddAmplifier(2,Marshal,300,1,Tube,n)") @?= False 
   ]
