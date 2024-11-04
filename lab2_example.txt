@@ -16,3 +16,11 @@ Inventory Accessory: AccessoryData {accessoryId = 4, accessoryName = "HardPick",
 Amplifier: AmplifierData {amplifierId = 2, amplifierName = "Marshall", amplifierStock = 10, amplifierPrice = 500, amplifierType = "Tube", relatedAmplifier = Just (AmplifierData {amplifierId = 5, amplifierName = "Marshall", amplifierStock = 10, amplifierPrice = 300, amplifierType = "other", relatedAmplifier = Nothing})}
 Guitar: GuitarData {guitarId = 1, guitarName = "Name", guitarStock = 20, guitarPrice = 200, guitarType = "Type", relatedGuitar = Nothing}
 
+-- from a fresh state
+>>> AddGuitar(1,Fender,20,200,Electric,none)
+Guitar added successfully
+>>> AddGuitar(1,Gibson,20,200,Electric,none)
+Guitar added successfully
+>>> TestGuitars
+Now playing tunes on Gibson
+Now playing tunes on Fender

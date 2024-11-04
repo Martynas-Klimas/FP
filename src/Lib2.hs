@@ -39,7 +39,8 @@ data Query =
     AddGuitar Guitar |
     AddAmplifier Amplifier |
     AddAccessory Accessory |
-    ViewInventory
+    ViewInventory |
+    TestGuitars
     deriving(Show, Eq)
 
 data Item = GuitarItem Guitar | AmplifierItem Amplifier | AccessoryItem Accessory
@@ -108,6 +109,7 @@ parseQuery input =
                         Left err -> Left $ "Failed adding accessory: " ++ err
                 Left err -> Left err
         Right ("ViewInventory", _) -> Right ViewInventory 
+        Right ("TestGuitars", _) -> Right TestGuitars
         Left err -> Left $ "Failed to parse query: " ++ err
 
 -- <guitar> ::= "Guitar(" <id> "," <name> "," <price> "," <stock> "," <type> "," <related_guitar> ")"
@@ -363,7 +365,21 @@ stateTransition st query =
                                     then "No items in inventory"
                                     else unlines(map showItem (inventory st))
             in Right(Just $ "Inventory " ++ inventoryContent, st)
-            
+        TestGuitars ->
+            let guitars = filter isGuitar (inventory st)
+                message = map playGuitar guitars 
+                response = if null message
+                             then "No guitars in inventory"
+                             else unlines message
+            in Right(Just response, st)
+
+isGuitar :: Item -> Bool
+isGuitar (GuitarItem _) = True
+isGuitar _ = False
+
+playGuitar :: Item -> String
+playGuitar (GuitarItem guitar) = "Now playing tunes on " ++ guitarName guitar
+playGuitar _ = ""  -- for non guitar items we dont do anything
 
 showItem :: Item -> String
 showItem (GuitarItem guitar)    = "Guitar: " ++ show guitar
