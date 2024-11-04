@@ -231,18 +231,6 @@ and2' c a b input =
             Left e2 -> Left e2
       Left e1 -> Left e1
 
-and3' ::(a -> b -> c -> d) -> Parser a -> Parser b -> Parser c -> Parser d
-and3' d a b c input = 
-    case a input of
-      Right(v1, r1) ->
-         case b r1 of
-            Right(v2, r2) ->
-                case c r2 of
-                    Right(v3, r3) -> Right(d v1 v2 v3, r3)
-                    Left e3 -> Left e3
-            Left e2 -> Left e2
-      Left e1 -> Left e1
-
 and4' ::(a -> b -> c -> d -> e) -> Parser a -> Parser b -> Parser c -> Parser d -> Parser e
 and4' e a b c d input = 
     case a input of
