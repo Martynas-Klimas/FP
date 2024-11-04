@@ -1,0 +1,18 @@
+>>> AddGuitar(1,Name,20,200,Type,none)
+Guitar added successfully
+>>> ViewInventory
+Inventory Guitar: GuitarData {guitarId = 1, guitarName = "Name", guitarStock = 20, guitarPrice = 200, guitarType = "Type", relatedGuitar = Nothing}
+
+>>> AddAmplifier(2,Marshall,10,500,Tube,Amplifier(5,Marshall,10,300,other,none))
+Amplifier added successfully
+>>> ViewInventory 
+Inventory Amplifier: AmplifierData {amplifierId = 2, amplifierName = "Marshall", amplifierStock = 10, amplifierPrice = 500, amplifierType = "Tube", relatedAmplifier = Just (AmplifierData {amplifierId = 5, amplifierName = "Marshall", amplifierStock = 10, amplifierPrice = 300, amplifierType = "other", relatedAmplifier = Nothing})}
+Guitar: GuitarData {guitarId = 1, guitarName = "Name", guitarStock = 20, guitarPrice = 200, guitarType = "Type", relatedGuitar = Nothing}
+
+>>> AddAccessory(4,HardPick,50,5,Plastic,Accessory(5,SoftPick,25,2,Plastic,Accessory(6,MediumPick,10,2,other,none)))
+Accessory added successfully
+>>> ViewInventory
+Inventory Accessory: AccessoryData {accessoryId = 4, accessoryName = "HardPick", accessoryStock = 50, accessoryPrice = 5, accessoryType = "Plastic", relatedAccessory = Just (AccessoryData {accessoryId = 5, accessoryName = "SoftPick", accessoryStock = 25, accessoryPrice = 2, accessoryType = "Plastic", relatedAccessory = Just (AccessoryData {accessoryId = 6, accessoryName = "MediumPick", accessoryStock = 10, accessoryPrice = 2, accessoryType = "other", relatedAccessory = Nothing})})}
+Amplifier: AmplifierData {amplifierId = 2, amplifierName = "Marshall", amplifierStock = 10, amplifierPrice = 500, amplifierType = "Tube", relatedAmplifier = Just (AmplifierData {amplifierId = 5, amplifierName = "Marshall", amplifierStock = 10, amplifierPrice = 300, amplifierType = "other", relatedAmplifier = Nothing})}
+Guitar: GuitarData {guitarId = 1, guitarName = "Name", guitarStock = 20, guitarPrice = 200, guitarType = "Type", relatedGuitar = Nothing}
+

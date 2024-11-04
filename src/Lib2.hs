@@ -3,6 +3,10 @@
 module Lib2
     ( parseQuery,
     State(..),
+    Guitar(..),
+    Amplifier(..),
+    Accessory(..),
+    Item(..),
     emptyState,
     stateTransition,
     parseId,
@@ -36,6 +40,7 @@ data Query =
     AddAmplifier Amplifier |
     AddAccessory Accessory |
     ViewInventory
+    deriving(Show, Eq)
 
 data Item = GuitarItem Guitar | AmplifierItem Amplifier | AccessoryItem Accessory
     deriving (Show, Eq)
@@ -68,13 +73,14 @@ data Accessory = AccessoryData {
   } deriving (Show, Eq)
 
 -- | The instances are needed basically for tests
+{-
 instance Eq Query where
   (==) :: Query -> Query -> Bool
   (==) _ _= False
 
 instance Show Query where
   show _ = ""
-
+-}
 -- | Parses user's input.
 -- The function must have tests.
 parseQuery :: String -> Either String Query
@@ -107,11 +113,11 @@ parseQuery input =
 -- <guitar> ::= "Guitar(" <id> "," <name> "," <price> "," <stock> "," <type> "," <related_guitar> ")"
 parseGuitar:: Parser Guitar
 parseGuitar =
-    and6' (\id name price stock guitarType relatedGuitar -> GuitarData id name price stock guitarType relatedGuitar) 
+    and6' (\id name stock price guitarType relatedGuitar -> GuitarData id name stock price guitarType relatedGuitar) 
      parseId
      parseName
-     parsePrice
      parseStock
+     parsePrice
      parseType
      parseMaybeGuitar
      <* parseChar ')'
@@ -119,11 +125,11 @@ parseGuitar =
 -- <amplifier> ::= "Amplifier(" <id> "," <name> "," <price> "," <stock> "," <type> "," <related_amplifier> ")"
 parseAmplifier:: Parser Amplifier
 parseAmplifier =
-    and6' (\id name price stock amplifierType relatedAmplifier -> AmplifierData id name price stock amplifierType relatedAmplifier) 
+    and6' (\id name stock price amplifierType relatedAmplifier -> AmplifierData id name stock price amplifierType relatedAmplifier) 
      parseId
      parseName
-     parsePrice
      parseStock
+     parsePrice
      parseType
      parseMaybeAmplifier
      <* parseChar ')'
@@ -131,11 +137,11 @@ parseAmplifier =
 -- <accessory> ::= "Accessory(" <id> "," <name> "," <price> "," <stock> "," <type> "," <related_accessory> ")"
 parseAccessory:: Parser Accessory
 parseAccessory =
-    and6' (\id name price stock accesoryType relatedAccessory -> AccessoryData id name price stock accesoryType relatedAccessory) 
+    and6' (\id name stock price accesoryType relatedAccessory -> AccessoryData id name stock price accesoryType relatedAccessory) 
      parseId
      parseName
-     parsePrice
      parseStock
+     parsePrice
      parseType
      parseMaybeAccesory
      <* parseChar ')'
@@ -346,7 +352,7 @@ stateTransition st query =
             let 
                 amplifierItem = AmplifierItem amplifier
                 newState = st {inventory = amplifierItem : inventory st}
-            in Right (Just "Amplifier added successfully", newState)
+            in Right (Just  "Amplifier added successfully", newState)
         AddAccessory accessory ->
             let 
                 accessoryItem = AccessoryItem accessory
@@ -356,8 +362,9 @@ stateTransition st query =
             let inventoryContent = if null (inventory st)
                                     then "No items in inventory"
                                     else unlines(map showItem (inventory st))
-            in Right(Just inventoryContent, st)
+            in Right(Just $ "Inventory " ++ inventoryContent, st)
             
+
 showItem :: Item -> String
 showItem (GuitarItem guitar)    = "Guitar: " ++ show guitar
 showItem (AmplifierItem amplifier)    = "Amplifier: " ++ show amplifier
