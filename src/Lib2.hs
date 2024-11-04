@@ -378,7 +378,12 @@ isGuitar (GuitarItem _) = True
 isGuitar _ = False
 
 playGuitar :: Item -> String
-playGuitar (GuitarItem guitar) = "Now playing tunes on " ++ guitarName guitar
+playGuitar (GuitarItem guitar) = 
+    case guitarType guitar of
+        "Electric"  -> "Playing rock music on a electric guitar: " ++ guitarName guitar
+        "Acoustic"  -> "Strumming chords on a acoustic guitar: " ++ guitarName guitar
+        "Classical" -> "Playing a classical melody on a classical guitar: " ++ guitarName guitar
+        _           -> "Testing a " ++ guitarType guitar ++ " " ++ guitarName guitar ++ " guitar"
 playGuitar _ = ""  -- for non guitar items we dont do anything
 
 showItem :: Item -> String

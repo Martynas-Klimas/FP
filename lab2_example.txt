@@ -19,8 +19,14 @@ Guitar: GuitarData {guitarId = 1, guitarName = "Name", guitarStock = 20, guitarP
 -- from a fresh state
 >>> AddGuitar(1,Fender,20,200,Electric,none)
 Guitar added successfully
->>> AddGuitar(1,Gibson,20,200,Electric,none)
+>>> AddGuitar(1,Gibson,20,200,Acoustic,none)
+Guitar added successfully
+>>> AddGuitar(3,Yamaha,2,250,Classical,none)
+Guitar added successfully
+>>> AddGuitar(3,Dreadnought,2,250,Hybrid,none)
 Guitar added successfully
 >>> TestGuitars
-Now playing tunes on Gibson
-Now playing tunes on Fender
+Testing a Hybrid Dreadnought guitar
+Playing a classical melody on a classical guitar: Yamaha
+Strumming chords on a acoustic guitar: Gibson
+Playing rock music on a electric guitar: Fender
