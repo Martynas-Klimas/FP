@@ -1,8 +1,10 @@
 {-# LANGUAGE ImportQualifiedPost #-}
 import Test.Tasty ( TestTree, defaultMain, testGroup )
 import Test.Tasty.HUnit ( testCase, (@?=) )
+import Test.Tasty.QuickCheck as QC
 
-import Data.Either ( isRight, isLeft )
+import Data.List
+import Data.Ord
 
 import Lib1 qualified
 import Lib2 qualified
@@ -11,7 +13,7 @@ main :: IO ()
 main = defaultMain tests
 
 tests :: TestTree
-tests = testGroup "Tests" [unitTests]
+tests = testGroup "Tests" [unitTests, propertyTests]
 
 unitTests :: TestTree
 unitTests = testGroup "Lib1 tests"
@@ -39,3 +41,10 @@ unitTests = testGroup "Lib1 tests"
    testCase "Parsing an even harder variant" $
       isRight (Lib2.parseQuery "AddAccessory(4,HardPick,50,5,Plastic,Accessory(5,SoftPick,25,2,Plastic,Accessory(6,MediumPick,10,2,other,none)))") @?= True   
    ]
+
+propertyTests :: TestTree
+propertyTests = testGroup "some meaningful name"
+  [
+    QC.testProperty "sort == sort . reverse" $
+      \list -> sort (list :: [Int]) == sort (reverse list)
+  ]
