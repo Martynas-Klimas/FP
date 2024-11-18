@@ -2,7 +2,10 @@
 {-# OPTIONS_GHC -Wno-incomplete-patterns #-}
 module Lib2
     ( parseQuery,
+    Parser,
+    parse,
     State(..),
+    Query(..),
     Guitar(..),
     Amplifier(..),
     Accessory(..),
@@ -22,15 +25,19 @@ module Lib2
     parseRelatedAmplifier,
     parseMaybeAmplifier,
     parseRelatedAccessory,
-    parseMaybeAccesory
+    parseMaybeAccesory,
+    parseSpecificWord,
+    parseChar
     ) where
 
 -- Spec.hs is a test file. We need to test parseQuery function (add test cases).
 
 import Data.Char as C
 import Data.List as L
+import Control.Applicative (Alternative ((<|>)))
+import GHC.Base (Alternative(empty))
 
-type Parser a = String -> Either String (a, String)
+newtype Parser a = Parser { parse :: String -> Either String (a, String) }
 -- | An entity which represets user input.
 -- It should match the grammar from Laboratory work #1.
 -- Currently it has no constructors but you can introduce
@@ -84,32 +91,67 @@ instance Show Query where
 -}
 -- | Parses user's input.
 -- The function must have tests.
-parseQuery :: String -> Either String Query
-parseQuery input =
-    case parseWord input of
+
+instance Functor Parser where
+  fmap f (Parser p) = Parser $ \input -> 
+    case p input of
+      Left err -> Left err
+      Right (result, rest) -> Right (f result, rest)
+
+instance Applicative Parser where
+  pure x = Parser $ \input -> Right (x, input)
+  (Parser pf) <*> (Parser p) = Parser $ \input -> 
+    case pf input of
+      Left err -> Left err
+      Right (f, rest) -> 
+        case p rest of
+          Left err' -> Left err'
+          Right (result, rest') -> Right (f result, rest')
+
+instance Alternative Parser where
+    empty :: Parser a
+    empty = Parser $ \input -> Left $ "Could not parse " ++ input
+    (<|>) :: Parser a -> Parser a -> Parser a
+    p1 <|> p2 = Parser $ \inp ->
+        case parse p1 inp of
+            Right r1 -> Right r1
+            Left e1 -> case parse p2 inp of
+                            Right r2 -> Right r2
+                            Left e2 -> Left e2
+                            
+instance Monad Parser where
+  (Parser p) >>= f = Parser $ \input -> 
+    case p input of
+      Left err -> Left err
+      Right (result, rest) -> parse (f result) rest
+
+parseQuery :: Parser Query
+parseQuery = Parser $ \input ->
+    case parse parseWord input of
         Right ("AddGuitar", rest1) ->
-            case parseChar '(' rest1 of
+            case parse parseBrackets rest1 of
                 Right (_, restGuitar) ->
-                    case parseGuitar restGuitar of
-                        Right (guitar, rest) -> Right (AddGuitar guitar)
+                    case parse parseGuitar restGuitar of
+                        Right (guitar, _) -> Right (AddGuitar guitar, "Adding guitar")
                         Left err -> Left $ "Failed adding guitar: " ++ err
                 Left err -> Left err
         Right ("AddAmplifier", rest1) ->
-            case parseChar '(' rest1 of
+            case parse parseBrackets rest1 of
                 Right (_, restAmplifier) ->
-                    case parseAmplifier restAmplifier of
-                        Right (amplifier, rest) -> Right (AddAmplifier amplifier)
+                    case parse parseAmplifier restAmplifier of
+                        Right (amplifier, _) -> Right (AddAmplifier amplifier, "Adding amplifier")
                         Left err -> Left $ "Failed adding amplifier: " ++ err
                 Left err -> Left err
         Right ("AddAccessory", rest1) ->  
-            case parseChar '(' rest1 of
+            let bracketParse = parseChar '('
+            in case parse bracketParse rest1 of
                 Right (_, restAccessory) ->
-                    case parseAccessory restAccessory of
-                        Right (accessory, rest) -> Right (AddAccessory accessory)
+                    case parse parseAccessory restAccessory of
+                        Right (accessory, _) -> Right (AddAccessory accessory, "Adding accessory")
                         Left err -> Left $ "Failed adding accessory: " ++ err
                 Left err -> Left err
-        Right ("ViewInventory", _) -> Right ViewInventory 
-        Right ("TestGuitars", _) -> Right TestGuitars
+        Right ("ViewInventory", _) -> Right (ViewInventory, "Viewing Guitars")
+        Right ("TestGuitars", _) -> Right (TestGuitars, "Testing Guitars")
         Left err -> Left $ "Failed to parse query: " ++ err
 
 -- <guitar> ::= "Guitar(" <id> "," <name> "," <price> "," <stock> "," <type> "," <related_guitar> ")"
@@ -176,14 +218,15 @@ parseMaybeGuitar  =
 
 --parse Related guitar part if it is present
 parseRelatedGuitar :: Parser (Maybe Guitar)
-parseRelatedGuitar input =
-    case and4' (\_ _ guitar _ -> guitar) (parseSpecificWord "Guitar") (parseChar '(') parseGuitar (parseChar ')') input of
+parseRelatedGuitar = Parser $ \input ->
+    let parser = and4' (\_ _ guitar _ -> guitar) (parseSpecificWord "Guitar") (parseChar '(') parseGuitar (parseChar ')') 
+    in case parse parser input of
         Right (guitar, rest) -> Right (Just guitar, rest)  
         Left err             -> Left err 
 
 --parse "none" for guitar
 parseNoneGuitar :: Parser (Maybe Guitar)
-parseNoneGuitar input =
+parseNoneGuitar = Parser $ \input ->
     if take 4 input == "none" then
         Right (Nothing, drop 4 input) 
     else
@@ -196,14 +239,15 @@ parseMaybeAmplifier = or2 parseNoneAmplifier parseRelatedAmplifier
 
 --parseRelated Amplifier if it is present
 parseRelatedAmplifier :: Parser (Maybe Amplifier)
-parseRelatedAmplifier input = 
-    case and4' (\_ _ amplifier _ -> amplifier) (parseSpecificWord "Amplifier") (parseChar '(') parseAmplifier (parseChar ')') input of
+parseRelatedAmplifier = Parser $ \input -> 
+    let parser = and4' (\_ _ amplifier _ -> amplifier) (parseSpecificWord "Amplifier") (parseChar '(') parseAmplifier (parseChar ')')
+    in case parse parser input of
         Right (amplifier, rest) -> Right(Just amplifier, rest)
         Left err                -> Left err
 
 -- parse "none" for amplifier
 parseNoneAmplifier :: Parser (Maybe Amplifier)
-parseNoneAmplifier input =
+parseNoneAmplifier = Parser $ \input ->
     if take 4 input == "none" then
         Right (Nothing, drop 4 input)  
     else
@@ -216,14 +260,15 @@ parseMaybeAccesory = or2 parseNoneAccessory parseRelatedAccessory
 
 -- parse relatedAccessory if it is present
 parseRelatedAccessory :: Parser (Maybe Accessory)
-parseRelatedAccessory input = 
-    case and4' (\_ _ accessory _ -> accessory) (parseSpecificWord "Accessory") (parseChar '(') parseAccessory (parseChar ')') input of
+parseRelatedAccessory = Parser $ \input -> 
+    let parser = and4' (\_ _ accessory _ -> accessory) (parseSpecificWord "Accessory") (parseChar '(') parseAccessory (parseChar ')')
+    in case parse parser input of
         Right (accessory, rest) -> Right(Just accessory, rest)
         Left err                -> Left err
 
 -- parse "none" for accessory
 parseNoneAccessory :: Parser (Maybe Accessory)
-parseNoneAccessory input =
+parseNoneAccessory = Parser $ \input ->
     if take 4 input == "none" then
         Right (Nothing, drop 4 input) 
     else
@@ -231,23 +276,23 @@ parseNoneAccessory input =
 
 --helper functions to combine parsers
 and2' ::(a -> b -> c) -> Parser a -> Parser b -> Parser c 
-and2' c a b input = 
-    case a input of
+and2' c a b = Parser $ \input -> 
+    case parse a input of
       Right(v1, r1) ->
-         case b r1 of
+         case parse b r1 of
             Right(v2, r2) -> Right(c v1 v2, r2)
             Left e2 -> Left e2
       Left e1 -> Left e1
 
 and4' ::(a -> b -> c -> d -> e) -> Parser a -> Parser b -> Parser c -> Parser d -> Parser e
-and4' e a b c d input = 
-    case a input of
+and4' e a b c d = Parser $ \input ->
+    case parse a input of
       Right(v1, r1) ->
-         case b r1 of
+         case parse b r1 of
             Right(v2, r2) ->
-                case c r2 of
+                case parse c r2 of
                     Right(v3, r3) -> 
-                        case d r3 of 
+                        case parse d r3 of 
                             Right(v4, r4) -> Right(e v1 v2 v3 v4, r4)
                             Left e4 -> Left e4
                     Left e3 -> Left e3
@@ -257,18 +302,18 @@ and4' e a b c d input =
 
 and6' :: (a -> b -> c -> d -> e -> f -> g) -> Parser a -> Parser b -> Parser c ->
     Parser d -> Parser e -> Parser f -> Parser g
-and6' g a b c d e f input = 
-    case a input of 
+and6' g a b c d e f = Parser $ \input ->
+    case parse a input of 
         Right(v1, r1) ->
-            case b r1 of 
+            case parse b r1 of 
                 Right(v2, r2) ->
-                    case c r2 of 
+                    case parse c r2 of 
                         Right(v3, r3) ->
-                            case d r3 of
+                            case parse d r3 of
                                 Right(v4, r4) ->
-                                    case e r4 of 
+                                    case parse e r4 of 
                                         Right(v5, r5) -> 
-                                            case f r5 of
+                                            case parse f r5 of
                                                 Right(v6, r6) -> Right(g v1 v2 v3 v4 v5 v6, r6)
                                                 Left e6 -> Left e6
                                         Left e5 -> Left e5
@@ -278,52 +323,53 @@ and6' g a b c d e f input =
         Left e1 -> Left e1
                  
 or2 :: Parser a -> Parser a -> Parser a
-or2 a b input = 
-    case a input of 
+or2 a b = Parser $ \input -> 
+    case parse a input of 
         Right r1 -> Right r1 
         Left e1 ->
-            case b input of 
+            case parse b input of 
                 Right r2 -> Right r2
                 Left e2 -> Left e2 
 
 parseNumber :: Parser Int
-parseNumber [] = Left "empty input, cannot parse a number"
-parseNumber str =
+parseNumber = Parser $ \input ->
     let
-        digits = L.takeWhile C.isDigit str
-        rest = drop (length digits) str
+        digits = L.takeWhile C.isDigit input
+        rest = drop (length digits) input
     in
         case digits of
             [] -> Left "not a number"
             _ -> Right (read digits, rest)
 
 parseChar :: Char -> Parser Char
-parseChar _ [] = Left "empty input, cannot parse a char"
-parseChar c input = 
+parseChar c = Parser $ \input ->
     case input of
-        (x:xs) -> if x == c
-            then Right(c, xs)
-            else Left("Expected " ++ [c] ++ ", but got " ++ [x])
+        [] ->  Left ("Cannot find " ++ [c] ++ " in an empty input")
+        s@(h:t) -> if c == h then Right (c, t) else Left (c : " is not found in " ++ s)
 
 -- parse a word and return (word, rest)
 parseWord :: Parser String
-parseWord str =
+parseWord = Parser $ \str ->
     let
         word = L.takeWhile C.isAlpha str
         rest = L.dropWhile C.isAlpha str
-    in if not (null word) 
-        then Right(word, rest)
+    in
+        if not (null word)
+        then Right (word, rest)
         else Left "Expected a word"
 
 -- parse a word only if a specific word is found
 parseSpecificWord :: String -> Parser String
-parseSpecificWord target str =
+parseSpecificWord target = Parser $ \str -> 
     let
         word = L.takeWhile C.isAlpha str
         rest = L.dropWhile C.isAlpha str
     in if word == target
         then Right (word, rest)
         else Left $ "Expected the word " ++ target ++ "but found " ++ word
+
+parseBrackets :: Parser Char
+parseBrackets = parseChar '('
 
 -- | An entity which represents your program's state.
 -- Currently it has no constructors but you can introduce

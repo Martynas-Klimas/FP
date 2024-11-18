@@ -1,4 +1,8 @@
 {-# LANGUAGE InstanceSigs #-}
+{-# OPTIONS_GHC -Wno-incomplete-patterns #-}
+{-# OPTIONS_GHC -Wno-overlapping-patterns #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+{-# HLINT ignore "Redundant return" #-}
 module Lib3
     ( stateTransition,
     StorageOp (..),
@@ -12,6 +16,11 @@ module Lib3
 import Control.Concurrent ( Chan )
 import Control.Concurrent.STM(STM, TVar)
 import qualified Lib2
+import Lib2(Parser, parse)
+import Control.Applicative ((<|>), Alternative (many))
+import Data.List (isPrefixOf, takeWhile)
+import qualified Data.Char as C
+import qualified Data.List as L
 
 data StorageOp = Save String (Chan ()) | Load (Chan String)
 -- | This function is started from main
@@ -33,16 +42,32 @@ data Command = StatementCommand Statements |
                SaveCommand
                deriving (Show, Eq)
 
+
 -- | Parses user's input.
 parseCommand :: String -> Either String (Command, String)
-parseCommand _ = Left "Not implemented 2"
+parseCommand = parse (StatementCommand <$> statements <|> parseLoad <|> parseSave)
+-- | Parses the "load" command.
+
+parseLoad :: Parser Command
+parseLoad = do 
+    _ <- Lib2.parseSpecificWord "save" 
+    return LoadCommand
+
+parseSave :: Parser Command
+parseSave = do
+    _ <- Lib2.parseSpecificWord "load"
+    return SaveCommand
+
 
 -- | Parses Statement.
 -- Must be used in parseCommand.
 -- Reuse Lib2 as much as you can.
 -- You can change Lib2.parseQuery signature if needed.
+
 parseStatements :: String -> Either String (Statements, String)
-parseStatements _ = Left "Not implemented 3"
+parseStatements = parse statements
+
+
 
 -- | Converts program's state into Statements
 -- (probably a batch, but might be a single query)
@@ -71,3 +96,18 @@ renderStatements _ = error "Not implemented 5"
 stateTransition :: TVar Lib2.State -> Command -> Chan StorageOp ->
                    IO (Either String (Maybe String))
 stateTransition _ _ ioChan = return $ Left "Not implemented 6"
+--save command, load command Statement command
+
+
+statements :: Parser Statements
+statements = ( do
+    _ <- Lib2.parseSpecificWord "BEGIN"
+    _ <- Lib2.parseChar ';'
+    stament <- many(do 
+                    statement <- Lib2.parseQuery
+                    _ <- Lib2.parseChar ';'
+                    return statement)
+    _ <- Lib2.parseSpecificWord "END"
+    return $ Batch stament
+    )
+        <|> (Single <$> Lib2.parseQuery)
