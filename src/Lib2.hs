@@ -1,9 +1,10 @@
 {-# LANGUAGE InstanceSigs #-}
 {-# OPTIONS_GHC -Wno-incomplete-patterns #-}
 module Lib2
-    ( parseQuery,
+    ( query,
     Parser,
     parse,
+    parseQuery,
     State(..),
     Query(..),
     Guitar(..),
@@ -26,7 +27,7 @@ module Lib2
     parseMaybeAmplifier,
     parseRelatedAccessory,
     parseMaybeAccesory,
-    parseSpecificWord,
+    parseString,
     parseChar
     ) where
 
@@ -36,6 +37,7 @@ import Data.Char as C
 import Data.List as L
 import Control.Applicative (Alternative ((<|>)))
 import GHC.Base (Alternative(empty))
+import Debug.Trace (trace)
 
 newtype Parser a = Parser { parse :: String -> Either String (a, String) }
 -- | An entity which represets user input.
@@ -80,18 +82,6 @@ data Accessory = AccessoryData {
     relatedAccessory   :: Maybe Accessory
   } deriving (Show, Eq)
 
--- | The instances are needed basically for tests
-{-
-instance Eq Query where
-  (==) :: Query -> Query -> Bool
-  (==) _ _= False
-
-instance Show Query where
-  show _ = ""
--}
--- | Parses user's input.
--- The function must have tests.
-
 instance Functor Parser where
   fmap f (Parser p) = Parser $ \input -> 
     case p input of
@@ -126,25 +116,18 @@ instance Monad Parser where
       Right (result, rest) -> parse (f result) rest
 
 query :: Parser Query
-query = parseAddGuitar <|>
-    parseAddAmplifier <|>
-    parseAddAccessory <|>
-    parseViewInventory <|>
-    parseTestGuitars
+query = parseAddGuitar <|> parseAddAccessory <|> parseViewInventory <|> parseTestGuitars <|> parseAddAmplifier
 
 parseQuery :: String -> Either String Query
 parseQuery str =
   case parse query str of
+    Right (q, r) -> if null r then Right q else Left ("Unrecognized characters:" ++ r)
     Left err -> Left err
-    Right (query, rest) -> 
-        if null rest 
-            then Right query 
-            else Left ("Unrecognized characters:" ++ rest)
 
 -- Parser for AddGuitar
 parseAddGuitar :: Parser Query
 parseAddGuitar = do
-    _ <- parseSpecificWord "AddGuitar"
+    _ <- parseString "AddGuitar" 
     _ <- parseChar '('
     guitar <- parseGuitar
     return $ AddGuitar guitar
@@ -152,7 +135,7 @@ parseAddGuitar = do
 -- Parser for AddAmplifier
 parseAddAmplifier :: Parser Query
 parseAddAmplifier = do
-    _ <- parseSpecificWord "AddAmplifier"
+    _ <- parseString "AddAmplifier"
     _ <- parseChar '('
     amplifier <- parseAmplifier
     return $ AddAmplifier amplifier
@@ -160,19 +143,19 @@ parseAddAmplifier = do
 -- Parser for AddAccessory
 parseAddAccessory :: Parser Query
 parseAddAccessory = do
-    _ <- parseSpecificWord "AddAccessory"
+    _ <- parseString "AddAccessory"
     _ <- parseChar '('
     accessory <- parseAccessory
     return $ AddAccessory accessory
 
 parseViewInventory :: Parser Query
 parseViewInventory = do
-    _ <- parseSpecificWord "ViewInventory"
+    _ <- parseString "ViewInventory"
     return ViewInventory
 
 parseTestGuitars :: Parser Query
 parseTestGuitars = do
-    _ <- parseSpecificWord "TestGuitars"
+    _ <- parseString "TestGuitars"
     return TestGuitars
 
 -- <guitar> ::= "Guitar(" <id> "," <name> "," <price> "," <stock> "," <type> "," <related_guitar> ")"
@@ -206,10 +189,10 @@ parseAccessory =  do
     name <- parseName
     stock <- parseStock
     price <- parsePrice
-    accesoryType <- parseType
+    accessoryType <- parseType
     relatedAccessory <- parseMaybeAccesory
     _ <- parseChar ')'
-    return $ AccessoryData id name price stock accesoryType relatedAccessory
+    return $ AccessoryData id name price stock accessoryType relatedAccessory
 
 -- <id> ::= <int>
 parseId :: Parser Int
@@ -249,61 +232,58 @@ parseType = do
 -- <related_guitar> ::= "none" | <guitar>
 -- combine parseNoneGuitar and parseRelatedGuitar to get either Nothing or guitar
 parseMaybeGuitar :: Parser (Maybe Guitar)
-parseMaybeGuitar = parseNoneGuitar <|> parseRelatedGuitar
+parseMaybeGuitar = parseRelatedGuitar <|> parseNoneGuitar
 
 --parse Related guitar part if it is present
 parseRelatedGuitar :: Parser (Maybe Guitar)
 parseRelatedGuitar = do 
-    _ <- parseSpecificWord "Guitar"
+    _ <- parseString "Guitar"
     _ <- parseChar '('
-    relatedGuitar <- parseMaybeGuitar
-    _ <- parseChar ')'
-    return relatedGuitar
+    relatedGuitar <- parseGuitar
+    return (Just relatedGuitar)
     
 --parse "none" for guitar
 parseNoneGuitar :: Parser (Maybe Guitar)
 parseNoneGuitar = do
-    _ <- parseSpecificWord "none"
+    _ <- parseString "none"
     return Nothing
 
 -- <related_amplifier> ::= "none" | <amplifier>
 -- combine parseNoneAmplifier and parseRelatedAmplifier to get either Nothing or amplifier
 parseMaybeAmplifier :: Parser (Maybe Amplifier)
-parseMaybeAmplifier = parseNoneAmplifier <|> parseRelatedAmplifier
+parseMaybeAmplifier = parseNoneAmplifier <|> parseRelatedAmplifier 
 
 --parseRelated Amplifier if it is present
 parseRelatedAmplifier :: Parser (Maybe Amplifier)
 parseRelatedAmplifier = do 
-    _ <- parseSpecificWord "Amplifier"
+    _ <- parseString "Amplifier"
     _ <- parseChar '('
-    relatedAmplifier <- parseMaybeAmplifier
-    _ <- parseChar ')'
-    return relatedAmplifier
+    relatedAmplifier <- parseAmplifier
+    return (Just relatedAmplifier)
 
 -- parse "none" for amplifier
 parseNoneAmplifier :: Parser (Maybe Amplifier)
 parseNoneAmplifier = do
-    _ <- parseSpecificWord "none"
+    _ <- parseString "none"
     return Nothing
 
 -- <related_accessory> ::= "none" | <accessory>
 -- combine parseRelatedAccessory and parseNoneAccessory to get either Nothing or Accessory
 parseMaybeAccesory :: Parser (Maybe Accessory)
-parseMaybeAccesory = parseNoneAccessory <|> parseRelatedAccessory
+parseMaybeAccesory = parseRelatedAccessory <|> parseNoneAccessory
 
 -- parse relatedAccessory if it is present
 parseRelatedAccessory :: Parser (Maybe Accessory)
 parseRelatedAccessory = do 
-    _ <- parseSpecificWord "Accessory"
+    _ <- parseString "Accessory"
     _ <- parseChar '('
-    relatedAccessory <- parseMaybeAccesory
-    _ <- parseChar ')'
-    return relatedAccessory
+    relatedAccessory <- parseAccessory
+    return (Just relatedAccessory)
 
 -- parse "none" for accessory
 parseNoneAccessory :: Parser (Maybe Accessory)
 parseNoneAccessory = do
-    _ <- parseSpecificWord "none"
+    _ <- parseString "none"
     return Nothing
 
 parseNumber :: Parser Int
@@ -319,8 +299,8 @@ parseNumber = Parser $ \input ->
 parseChar :: Char -> Parser Char
 parseChar c = Parser $ \input ->
     case input of
-        [] ->  Left ("Cannot find " ++ [c] ++ " in an empty input")
-        s@(h:t) -> if c == h then Right (c, t) else Left (c : " is not found in " ++ s)
+        [] -> Left ("Expected '" ++ [c] ++ "', but input is empty")
+        (h:t) -> if c == h then Right (c, t) else Left ("Expected '" ++ [c] ++ "', but found '" ++ [h] ++ "'")
 
 -- parse a word and return (word, rest)
 parseWord :: Parser String
@@ -334,14 +314,12 @@ parseWord = Parser $ \str ->
         else Left "Expected a word"
 
 -- parse a word only if a specific word is found
-parseSpecificWord :: String -> Parser String
-parseSpecificWord target = Parser $ \str -> 
-    let
-        word = L.takeWhile C.isAlpha str
-        rest = L.dropWhile C.isAlpha str
-    in if word == target
-        then Right (word, rest)
-        else Left $ "Expected the word " ++ target ++ "but found " ++ word
+parseString :: String -> Parser String
+parseString [] = return []
+parseString (c:cs) = do
+    _ <- parseChar c
+    rest <- parseString cs
+    return (c : rest)
 
 -- | An entity which represents your program's state.
 -- Currently it has no constructors but you can introduce
