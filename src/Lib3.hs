@@ -13,16 +13,15 @@ module Lib3
     renderStatements
     ) where
 
-import Control.Concurrent ( Chan )
-import Control.Concurrent.STM(STM, TVar)
+import Control.Concurrent ( Chan , readChan, writeChan)
+import Control.Concurrent.STM(STM, TVar, atomically)
 import qualified Lib2
 import Lib2(Parser, parse)
 import Control.Applicative ((<|>), Alternative (many))
-import Data.List (isPrefixOf, takeWhile)
-import qualified Data.Char as C
-import qualified Data.List as L
+import Control.Monad(forever)
+import System.Directory (doesFileExist)
 
-data StorageOp = Save String (Chan ()) | Load (Chan String)
+data StorageOp = Save String (Chan ()) | Load (Chan(Maybe String))
 -- | This function is started from main
 -- in a dedicated thread. It must be used to control
 -- file access in a synchronized manner: read requests
@@ -30,8 +29,22 @@ data StorageOp = Save String (Chan ()) | Load (Chan String)
 -- to a channel provided in a request.
 -- Modify as needed.
 storageOpLoop :: Chan StorageOp -> IO ()
-storageOpLoop _ = do
-  return $ error "Not implemented 1"
+storageOpLoop storageOpChannel = forever $ do
+    storageOp <- readChan storageOpChannel
+    case storageOp of
+        Save string channel -> do
+            writeFile fileName string
+            writeChan channel () -- saving is complete
+        Load channel -> do
+            exists <- doesFileExist fileName
+            if exists
+                then do 
+                    loadStr <- readFile fileName
+                    writeChan channel (Just loadStr) --return result from load
+            else writeChan channel Nothing
+
+fileName :: String 
+fileName = "state.txt"
 
 data Statements = Batch [Lib2.Query] |
                Single Lib2.Query
@@ -46,33 +59,31 @@ data Command = StatementCommand Statements |
 -- | Parses user's input.
 parseCommand :: String -> Either String (Command, String)
 parseCommand = parse (StatementCommand <$> statements <|> parseLoad <|> parseSave)
--- | Parses the "load" command.
 
+-- | Parses the "load" command.
 parseLoad :: Parser Command
 parseLoad = do 
-    _ <- Lib2.parseSpecificWord "save" 
+    _ <- Lib2.parseSpecificWord "load" 
     return LoadCommand
 
+--Parses the "save" command
 parseSave :: Parser Command
 parseSave = do
-    _ <- Lib2.parseSpecificWord "load"
+    _ <- Lib2.parseSpecificWord "save"
     return SaveCommand
-
 
 -- | Parses Statement.
 -- Must be used in parseCommand.
 -- Reuse Lib2 as much as you can.
 -- You can change Lib2.parseQuery signature if needed.
-
 parseStatements :: String -> Either String (Statements, String)
 parseStatements = parse statements
-
 
 
 -- | Converts program's state into Statements
 -- (probably a batch, but might be a single query)
 marshallState :: Lib2.State -> Statements
-marshallState _ = error "Not implemented 4"
+marshallState _ = 
 
 -- | Renders Statements into a String which
 -- can be parsed back into Statements by parseStatements
@@ -81,7 +92,7 @@ marshallState _ = error "Not implemented 4"
 -- Must have a property test
 -- for all s: parseStatements (renderStatements s) == Right(s, "")
 renderStatements :: Statements -> String
-renderStatements _ = error "Not implemented 5"
+renderStatements = 
 
 -- | Updates a state according to a command.
 -- Performs file IO via ioChan if needed.

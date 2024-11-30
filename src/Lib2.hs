@@ -125,211 +125,186 @@ instance Monad Parser where
       Left err -> Left err
       Right (result, rest) -> parse (f result) rest
 
-parseQuery :: Parser Query
-parseQuery = Parser $ \input ->
-    case parse parseWord input of
-        Right ("AddGuitar", rest1) ->
-            case parse parseBrackets rest1 of
-                Right (_, restGuitar) ->
-                    case parse parseGuitar restGuitar of
-                        Right (guitar, _) -> Right (AddGuitar guitar, "Adding guitar")
-                        Left err -> Left $ "Failed adding guitar: " ++ err
-                Left err -> Left err
-        Right ("AddAmplifier", rest1) ->
-            case parse parseBrackets rest1 of
-                Right (_, restAmplifier) ->
-                    case parse parseAmplifier restAmplifier of
-                        Right (amplifier, _) -> Right (AddAmplifier amplifier, "Adding amplifier")
-                        Left err -> Left $ "Failed adding amplifier: " ++ err
-                Left err -> Left err
-        Right ("AddAccessory", rest1) ->  
-            let bracketParse = parseChar '('
-            in case parse bracketParse rest1 of
-                Right (_, restAccessory) ->
-                    case parse parseAccessory restAccessory of
-                        Right (accessory, _) -> Right (AddAccessory accessory, "Adding accessory")
-                        Left err -> Left $ "Failed adding accessory: " ++ err
-                Left err -> Left err
-        Right ("ViewInventory", _) -> Right (ViewInventory, "Viewing Guitars")
-        Right ("TestGuitars", _) -> Right (TestGuitars, "Testing Guitars")
-        Left err -> Left $ "Failed to parse query: " ++ err
+query :: Parser Query
+query = parseAddGuitar <|>
+    parseAddAmplifier <|>
+    parseAddAccessory <|>
+    parseViewInventory <|>
+    parseTestGuitars
+
+parseQuery :: String -> Either String Query
+parseQuery str =
+  case parse query str of
+    Left err -> Left err
+    Right (query, rest) -> 
+        if null rest 
+            then Right query 
+            else Left ("Unrecognized characters:" ++ rest)
+
+-- Parser for AddGuitar
+parseAddGuitar :: Parser Query
+parseAddGuitar = do
+    _ <- parseSpecificWord "AddGuitar"
+    _ <- parseChar '('
+    guitar <- parseGuitar
+    return $ AddGuitar guitar
+
+-- Parser for AddAmplifier
+parseAddAmplifier :: Parser Query
+parseAddAmplifier = do
+    _ <- parseSpecificWord "AddAmplifier"
+    _ <- parseChar '('
+    amplifier <- parseAmplifier
+    return $ AddAmplifier amplifier
+
+-- Parser for AddAccessory
+parseAddAccessory :: Parser Query
+parseAddAccessory = do
+    _ <- parseSpecificWord "AddAccessory"
+    _ <- parseChar '('
+    accessory <- parseAccessory
+    return $ AddAccessory accessory
+
+parseViewInventory :: Parser Query
+parseViewInventory = do
+    _ <- parseSpecificWord "ViewInventory"
+    return ViewInventory
+
+parseTestGuitars :: Parser Query
+parseTestGuitars = do
+    _ <- parseSpecificWord "TestGuitars"
+    return TestGuitars
 
 -- <guitar> ::= "Guitar(" <id> "," <name> "," <price> "," <stock> "," <type> "," <related_guitar> ")"
 parseGuitar:: Parser Guitar
-parseGuitar =
-    and6' (\id name stock price guitarType relatedGuitar -> GuitarData id name stock price guitarType relatedGuitar) 
-     parseId
-     parseName
-     parseStock
-     parsePrice
-     parseType
-     parseMaybeGuitar
-     <* parseChar ')'
+parseGuitar =  do
+    id <- parseId
+    name <- parseName
+    stock <- parseStock
+    price <- parsePrice
+    guitarType <- parseType
+    relatedGuitar <- parseMaybeGuitar
+    _ <- parseChar ')'
+    return $ GuitarData id name price stock guitarType relatedGuitar
 
 -- <amplifier> ::= "Amplifier(" <id> "," <name> "," <price> "," <stock> "," <type> "," <related_amplifier> ")"
 parseAmplifier:: Parser Amplifier
-parseAmplifier =
-    and6' (\id name stock price amplifierType relatedAmplifier -> AmplifierData id name stock price amplifierType relatedAmplifier) 
-     parseId
-     parseName
-     parseStock
-     parsePrice
-     parseType
-     parseMaybeAmplifier
-     <* parseChar ')'
+parseAmplifier =  do
+    id <- parseId
+    name <- parseName
+    stock <- parseStock
+    price <- parsePrice
+    amplifierType <- parseType
+    relatedAmplifier <- parseMaybeAmplifier
+    _ <- parseChar ')'
+    return $ AmplifierData id name price stock amplifierType relatedAmplifier
 
 -- <accessory> ::= "Accessory(" <id> "," <name> "," <price> "," <stock> "," <type> "," <related_accessory> ")"
 parseAccessory:: Parser Accessory
-parseAccessory =
-    and6' (\id name stock price accesoryType relatedAccessory -> AccessoryData id name stock price accesoryType relatedAccessory) 
-     parseId
-     parseName
-     parseStock
-     parsePrice
-     parseType
-     parseMaybeAccesory
-     <* parseChar ')'
+parseAccessory =  do
+    id <- parseId
+    name <- parseName
+    stock <- parseStock
+    price <- parsePrice
+    accesoryType <- parseType
+    relatedAccessory <- parseMaybeAccesory
+    _ <- parseChar ')'
+    return $ AccessoryData id name price stock accesoryType relatedAccessory
 
 -- <id> ::= <int>
 parseId :: Parser Int
-parseId = and2' (\id _ -> id) parseNumber (parseChar ',')
+parseId = do
+    instrumentId <- parseNumber
+    _ <- parseChar ','
+    return instrumentId
 
 -- <name> ::= <string>
 parseName :: Parser String
-parseName = and2' (\name _ -> name) parseWord (parseChar ',')
+parseName = do
+    instrumentName <- parseWord
+    _ <- parseChar ','
+    return instrumentName
 
 -- <stock> ::= <int>
 parseStock :: Parser Int
-parseStock = and2' (\stock _ -> stock) parseNumber (parseChar ',')
+parseStock = do
+    instrumentStock <- parseNumber
+    _ <- parseChar ','
+    return instrumentStock
 
 -- <price> ::= <int>
 parsePrice :: Parser Int
-parsePrice = and2' (\price _ -> price) parseNumber (parseChar ',')
+parsePrice = do
+    instrumentPrice <- parseNumber
+    _ <- parseChar ','
+    return instrumentPrice
 
 -- <type> ::= <string>
 parseType :: Parser String
-parseType = and2'(\instrumentType _ -> instrumentType) parseWord (parseChar ',')
+parseType = do
+    instrumentType <- parseWord
+    _ <- parseChar ',' 
+    return instrumentType
 
 -- <related_guitar> ::= "none" | <guitar>
 -- combine parseNoneGuitar and parseRelatedGuitar to get either Nothing or guitar
 parseMaybeGuitar :: Parser (Maybe Guitar)
-parseMaybeGuitar  =
-    or2 parseNoneGuitar parseRelatedGuitar
+parseMaybeGuitar = parseNoneGuitar <|> parseRelatedGuitar
 
 --parse Related guitar part if it is present
 parseRelatedGuitar :: Parser (Maybe Guitar)
-parseRelatedGuitar = Parser $ \input ->
-    let parser = and4' (\_ _ guitar _ -> guitar) (parseSpecificWord "Guitar") (parseChar '(') parseGuitar (parseChar ')') 
-    in case parse parser input of
-        Right (guitar, rest) -> Right (Just guitar, rest)  
-        Left err             -> Left err 
-
+parseRelatedGuitar = do 
+    _ <- parseSpecificWord "Guitar"
+    _ <- parseChar '('
+    relatedGuitar <- parseMaybeGuitar
+    _ <- parseChar ')'
+    return relatedGuitar
+    
 --parse "none" for guitar
 parseNoneGuitar :: Parser (Maybe Guitar)
-parseNoneGuitar = Parser $ \input ->
-    if take 4 input == "none" then
-        Right (Nothing, drop 4 input) 
-    else
-        Left "Expected 'none'"
+parseNoneGuitar = do
+    _ <- parseSpecificWord "none"
+    return Nothing
 
 -- <related_amplifier> ::= "none" | <amplifier>
 -- combine parseNoneAmplifier and parseRelatedAmplifier to get either Nothing or amplifier
 parseMaybeAmplifier :: Parser (Maybe Amplifier)
-parseMaybeAmplifier = or2 parseNoneAmplifier parseRelatedAmplifier
+parseMaybeAmplifier = parseNoneAmplifier <|> parseRelatedAmplifier
 
 --parseRelated Amplifier if it is present
 parseRelatedAmplifier :: Parser (Maybe Amplifier)
-parseRelatedAmplifier = Parser $ \input -> 
-    let parser = and4' (\_ _ amplifier _ -> amplifier) (parseSpecificWord "Amplifier") (parseChar '(') parseAmplifier (parseChar ')')
-    in case parse parser input of
-        Right (amplifier, rest) -> Right(Just amplifier, rest)
-        Left err                -> Left err
+parseRelatedAmplifier = do 
+    _ <- parseSpecificWord "Amplifier"
+    _ <- parseChar '('
+    relatedAmplifier <- parseMaybeAmplifier
+    _ <- parseChar ')'
+    return relatedAmplifier
 
 -- parse "none" for amplifier
 parseNoneAmplifier :: Parser (Maybe Amplifier)
-parseNoneAmplifier = Parser $ \input ->
-    if take 4 input == "none" then
-        Right (Nothing, drop 4 input)  
-    else
-        Left "Expected 'none'"
+parseNoneAmplifier = do
+    _ <- parseSpecificWord "none"
+    return Nothing
 
 -- <related_accessory> ::= "none" | <accessory>
 -- combine parseRelatedAccessory and parseNoneAccessory to get either Nothing or Accessory
 parseMaybeAccesory :: Parser (Maybe Accessory)
-parseMaybeAccesory = or2 parseNoneAccessory parseRelatedAccessory
+parseMaybeAccesory = parseNoneAccessory <|> parseRelatedAccessory
 
 -- parse relatedAccessory if it is present
 parseRelatedAccessory :: Parser (Maybe Accessory)
-parseRelatedAccessory = Parser $ \input -> 
-    let parser = and4' (\_ _ accessory _ -> accessory) (parseSpecificWord "Accessory") (parseChar '(') parseAccessory (parseChar ')')
-    in case parse parser input of
-        Right (accessory, rest) -> Right(Just accessory, rest)
-        Left err                -> Left err
+parseRelatedAccessory = do 
+    _ <- parseSpecificWord "Accessory"
+    _ <- parseChar '('
+    relatedAccessory <- parseMaybeAccesory
+    _ <- parseChar ')'
+    return relatedAccessory
 
 -- parse "none" for accessory
 parseNoneAccessory :: Parser (Maybe Accessory)
-parseNoneAccessory = Parser $ \input ->
-    if take 4 input == "none" then
-        Right (Nothing, drop 4 input) 
-    else
-        Left "Expected 'none'"
-
---helper functions to combine parsers
-and2' ::(a -> b -> c) -> Parser a -> Parser b -> Parser c 
-and2' c a b = Parser $ \input -> 
-    case parse a input of
-      Right(v1, r1) ->
-         case parse b r1 of
-            Right(v2, r2) -> Right(c v1 v2, r2)
-            Left e2 -> Left e2
-      Left e1 -> Left e1
-
-and4' ::(a -> b -> c -> d -> e) -> Parser a -> Parser b -> Parser c -> Parser d -> Parser e
-and4' e a b c d = Parser $ \input ->
-    case parse a input of
-      Right(v1, r1) ->
-         case parse b r1 of
-            Right(v2, r2) ->
-                case parse c r2 of
-                    Right(v3, r3) -> 
-                        case parse d r3 of 
-                            Right(v4, r4) -> Right(e v1 v2 v3 v4, r4)
-                            Left e4 -> Left e4
-                    Left e3 -> Left e3
-            Left e2 -> Left e2
-      Left e1 -> Left e1
-
-
-and6' :: (a -> b -> c -> d -> e -> f -> g) -> Parser a -> Parser b -> Parser c ->
-    Parser d -> Parser e -> Parser f -> Parser g
-and6' g a b c d e f = Parser $ \input ->
-    case parse a input of 
-        Right(v1, r1) ->
-            case parse b r1 of 
-                Right(v2, r2) ->
-                    case parse c r2 of 
-                        Right(v3, r3) ->
-                            case parse d r3 of
-                                Right(v4, r4) ->
-                                    case parse e r4 of 
-                                        Right(v5, r5) -> 
-                                            case parse f r5 of
-                                                Right(v6, r6) -> Right(g v1 v2 v3 v4 v5 v6, r6)
-                                                Left e6 -> Left e6
-                                        Left e5 -> Left e5
-                                Left e4 -> Left e4
-                        Left e3 -> Left e3 
-                Left e2 -> Left e2 
-        Left e1 -> Left e1
-                 
-or2 :: Parser a -> Parser a -> Parser a
-or2 a b = Parser $ \input -> 
-    case parse a input of 
-        Right r1 -> Right r1 
-        Left e1 ->
-            case parse b input of 
-                Right r2 -> Right r2
-                Left e2 -> Left e2 
+parseNoneAccessory = do
+    _ <- parseSpecificWord "none"
+    return Nothing
 
 parseNumber :: Parser Int
 parseNumber = Parser $ \input ->
@@ -367,9 +342,6 @@ parseSpecificWord target = Parser $ \str ->
     in if word == target
         then Right (word, rest)
         else Left $ "Expected the word " ++ target ++ "but found " ++ word
-
-parseBrackets :: Parser Char
-parseBrackets = parseChar '('
 
 -- | An entity which represents your program's state.
 -- Currently it has no constructors but you can introduce
