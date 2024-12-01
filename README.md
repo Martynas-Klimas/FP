@@ -3,6 +3,53 @@
 
 Guitar shop has an inventory in which items such as guitars, amplifiers and other accesories are stored. It has a method by which it can add an item to its inventory.
 
+### Lib3 Batch queries
+Now it is possible to provide many queries at the same time, running them as a batch.
+After loading the program, you can run it using `stack run fp2024-three`, then write the following commands:
+
+```
+>>> :paste
+-- Entering multi-line mode. Press <Ctrl-D> to finish.
+| BEGIN
+| AddGuitar(1,Fender,20,200,Electric,none);
+| AddGuitar(1,Gibson,20,200,Acoustic,none);
+| AddAmplifier(2,Marshall,10,500,Tube,Amplifier(5,Marshall,10,300,other,none));
+| END
+| 
+Guitar added successfully
+Guitar added successfully
+Amplifier added successfully
+```
+
+Save is used to save data to a file (state.txt):
+```
+>>> save
+State saved successfully
+```
+
+In state.txt the saved state looks like this: 
+```
+BEGIN
+AddAmplifier(2,Marshall,10,500,Tube,Amplifier(5,Marshall,10,300,other,none));
+AddGuitar(1,Gibson,20,200,Acoustic,none);
+AddGuitar(1,Fender,20,200,Electric,none);
+END
+```
+We can close the seesion, then run `stack run fp2024-three` again to load data from state.txt.
+Here data is being loaded successfully and ViewInventory command confirms this.
+```
+>>> load
+Amplifier added successfully
+Guitar added successfully
+Guitar added successfully
+Guitar added successfully
+>>> ViewInventory
+Inventory Guitar: GuitarData {guitarId = 1, guitarName = "Name", guitarStock = 200, guitarPrice = 20, guitarType = "Type", relatedGuitar = Nothing}
+Guitar: GuitarData {guitarId = 1, guitarName = "Fender", guitarStock = 200, guitarPrice = 20, guitarType = "Electric", relatedGuitar = Nothing}
+Guitar: GuitarData {guitarId = 1, guitarName = "Gibson", guitarStock = 200, guitarPrice = 20, guitarType = "Acoustic", relatedGuitar = Nothing}
+Amplifier: AmplifierData {amplifierId = 2, amplifierName = "Marshall", amplifierStock = 500, amplifierPrice = 10, amplifierType = "Tube", relatedAmplifier = Just (AmplifierData {amplifierId = 5, amplifierName = "Marshall", amplifierStock = 300, amplifierPrice = 10, amplifierType = "other", relatedAmplifier = Nothing})}
+```
+
 ## Main components:
 1. item: Can be a guitar, amplifier or an accesory (pedal, pick, etc)
 

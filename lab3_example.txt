@@ -1,0 +1,34 @@
+Welcome! Press [TAB] for auto completion, type ':paste' for multiline input
+>>> AddGuitar(1,Name,20,200,Type,none)
+Guitar added successfully
+>>> ViewInventory
+Inventory Guitar: GuitarData {guitarId = 1, guitarName = "Name", guitarStock = 200, guitarPrice = 20, guitarType = "Type", relatedGuitar = Nothing}
+
+>>> :paste
+-- Entering multi-line mode. Press <Ctrl-D> to finish.
+| BEGIN
+| AddGuitar(1,Fender,20,200,Electric,none);
+| AddGuitar(1,Gibson,20,200,Acoustic,none);
+| AddAmplifier(2,Marshall,10,500,Tube,Amplifier(5,Marshall,10,300,other,none));
+| END
+| 
+Guitar added successfully
+Guitar added successfully
+Amplifier added successfully
+>>> save
+State saved successfully
+
+Starting from a fresh state
+
+Welcome! Press [TAB] for auto completion, type ':paste' for multiline input
+>>> load
+Amplifier added successfully
+Guitar added successfully
+Guitar added successfully
+Guitar added successfully
+>>> ViewInventory
+Inventory Guitar: GuitarData {guitarId = 1, guitarName = "Name", guitarStock = 200, guitarPrice = 20, guitarType = "Type", relatedGuitar = Nothing}
+Guitar: GuitarData {guitarId = 1, guitarName = "Fender", guitarStock = 200, guitarPrice = 20, guitarType = "Electric", relatedGuitar = Nothing}
+Guitar: GuitarData {guitarId = 1, guitarName = "Gibson", guitarStock = 200, guitarPrice = 20, guitarType = "Acoustic", relatedGuitar = Nothing}
+Amplifier: AmplifierData {amplifierId = 2, amplifierName = "Marshall", amplifierStock = 500, amplifierPrice = 10, amplifierType = "Tube", relatedAmplifier = Just (AmplifierData {amplifierId = 5, amplifierName = "Marshall", amplifierStock = 300, amplifierPrice = 10, amplifierType = "other", relatedAmplifier = Nothing})}
+
