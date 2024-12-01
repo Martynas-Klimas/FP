@@ -12,6 +12,7 @@ module Lib3
     parseStatements,
     marshallState,
     renderStatements,
+    Statements(..),
     ) where
 
 import Control.Concurrent ( Chan , readChan, writeChan)
@@ -58,7 +59,6 @@ data Command = StatementCommand Statements |
                LoadCommand |
                SaveCommand
                deriving (Show, Eq)
-
 
 -- | Parses user's input.
 parseCommand :: String -> Either String (Command, String)
@@ -127,6 +127,7 @@ renderQuery Lib2.TestGuitars =
 
 renderGuitar :: Lib2.Guitar -> String
 renderGuitar guitar =
+    show(Lib2.guitarId guitar) ++ "," ++
     Lib2.guitarName guitar ++ "," ++
     show (Lib2.guitarPrice guitar) ++ "," ++
     show (Lib2.guitarStock guitar) ++ "," ++
@@ -141,6 +142,7 @@ renderRelatedGuitar (Just relatedGuitar) =
 
 renderAmplifier :: Lib2.Amplifier -> String
 renderAmplifier amplifier =
+    show(Lib2.amplifierId amplifier) ++ "," ++
     Lib2.amplifierName amplifier ++ "," ++
     show (Lib2.amplifierPrice amplifier) ++ "," ++
     show (Lib2.amplifierStock amplifier) ++ "," ++
@@ -154,6 +156,7 @@ renderRelatedAmplifier (Just relatedAmplifier) =
 
 renderAccessory :: Lib2.Accessory -> String
 renderAccessory accessory =
+    show(Lib2.accessoryId accessory) ++ "," ++
     Lib2.accessoryName accessory ++ "," ++
     show (Lib2.accessoryPrice accessory) ++ "," ++
     show (Lib2.accessoryStock accessory) ++ "," ++

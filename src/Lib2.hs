@@ -13,22 +13,7 @@ module Lib2
     Item(..),
     emptyState,
     stateTransition,
-    parseId,
-    parseName,
-    parseStock,
-    parsePrice,
-    parseType,
-    parseNoneGuitar,
-    parseNoneAmplifier,
-    parseNoneAccessory,
-    parseRelatedGuitar,
-    parseMaybeGuitar,
-    parseRelatedAmplifier,
-    parseMaybeAmplifier,
-    parseRelatedAccessory,
-    parseMaybeAccesory,
     parseString,
-    parseChar
     ) where
 
 -- Spec.hs is a test file. We need to test parseQuery function (add test cases).

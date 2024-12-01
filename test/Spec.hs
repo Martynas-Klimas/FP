@@ -3,7 +3,7 @@ import Test.Tasty ( TestTree, defaultMain, testGroup )
 import Test.Tasty.HUnit ( testCase, (@?=) )
 import Data.Either (isRight, isLeft)
 import Test.Tasty.QuickCheck as QC
-
+import Data.Char (isAlpha)
 import Data.List
 import Data.Ord
 
@@ -40,11 +40,70 @@ unitTests = testGroup "Lib1 tests"
       isRight(Lib3.parseCommand "AddAmplifier(2,Marshall,10,500,Tube,Amplifier(5,Marshall,10,300,other,none))") @?= True
    ]
 
+instance Arbitrary Lib2.Guitar where
+  arbitrary = sized $ \n ->
+    Lib2.GuitarData
+      <$> positiveInt
+      <*> nonEmptyString
+      <*> positiveInt
+      <*> positiveInt
+      <*> nonEmptyString
+      <*> (if n == 0 then pure Nothing else arbitrary)
+
+instance Arbitrary Lib2.Amplifier where
+  arbitrary = sized $ \n ->
+    Lib2.AmplifierData
+      <$> positiveInt
+      <*> nonEmptyString
+      <*> positiveInt
+      <*> positiveInt
+      <*> nonEmptyString
+      <*> (if n == 0 then pure Nothing else arbitrary)
+
+instance Arbitrary Lib2.Accessory where
+  arbitrary = sized $ \n ->
+    Lib2.AccessoryData
+      <$> positiveInt
+      <*> nonEmptyString
+      <*> positiveInt
+      <*> positiveInt
+      <*> nonEmptyString
+      <*> (if n == 0 then pure Nothing else arbitrary)
+
+nonEmptyString :: Gen String
+nonEmptyString = listOf1 $ elements ['A'..'Z']
+
+positiveInt :: Gen Int
+positiveInt = arbitrary `suchThat` (> 0)
+
+instance Arbitrary Lib2.Query where
+  arbitrary = oneof
+    [ Lib2.AddGuitar <$> arbitrary -- Generates a random Guitar and wraps it in AddGuitar
+    , Lib2.AddAmplifier <$> arbitrary -- Generates a random Amplifier and wraps it in AddAmplifier
+    , Lib2.AddAccessory <$> arbitrary -- Generates a random Accessory and wraps it in AddAccessory
+    , pure Lib2.ViewInventory -- Generates the ViewInventory query
+    , pure Lib2.TestGuitars -- Generates the TestGuitars query
+    ]
+
+instance Arbitrary Lib3.Statements where
+  arbitrary = oneof
+    [ Lib3.Single <$> arbitrary
+    , Lib3.Batch <$> listOf arbitrary
+    ]
+
 propertyTests :: TestTree
 propertyTests = testGroup "Property Tests"
   [
-
-
-    QC.testProperty "sort == sort . reverse" $
-      \list -> sort (list :: [Int]) == sort (reverse list)
+    QC.testProperty "Rendered and parsed statements" $ 
+      \st ->
+        let renderedSt = Lib3.renderStatements st
+            parsedSt = Lib3.parseStatements renderedSt
+            renderedParsedSt = case parsedSt of
+              Right (parsedSt, _) -> Lib3.renderStatements parsedSt
+              Left _ -> ""
+        in result
+            ("Rendered statement: \n" ++ renderedSt ++ "\nParsed statement: \n" ++ renderedParsedSt)
+            (case parsedSt of 
+              Right (parsedSt, "") -> renderedSt == renderedParsedSt
+              _ -> False)
   ]

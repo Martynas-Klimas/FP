@@ -1,0 +1,4 @@
+BEGIN
+AddAmplifier(Marshall,10,500,Tube,Amplifier(Marshall,10,300,other,none);
+AddGuitar(Name,20,200,Type,none);
+END
