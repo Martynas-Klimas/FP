@@ -1,4 +1,5 @@
 {-# LANGUAGE ImportQualifiedPost #-}
+{-# OPTIONS_GHC -Wno-orphans #-}
 import Test.Tasty ( TestTree, defaultMain, testGroup )
 import Test.Tasty.HUnit ( testCase, (@?=) )
 import Data.Either (isRight, isLeft)
@@ -101,7 +102,7 @@ propertyTests = testGroup "Property Tests"
             renderedParsedSt = case parsedSt of
               Right (parsedSt, _) -> Lib3.renderStatements parsedSt
               Left _ -> ""
-        in result
+        in counterexample
             ("Rendered statement: \n" ++ renderedSt ++ "\nParsed statement: \n" ++ renderedParsedSt)
             (case parsedSt of 
               Right (parsedSt, "") -> renderedSt == renderedParsedSt
