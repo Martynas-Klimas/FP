@@ -18,7 +18,8 @@ module Lib3
 import Control.Concurrent ( Chan , readChan, writeChan)
 import Control.Concurrent.STM( STM, TVar, atomically, writeTVar, readTVar )
 import qualified Lib2
-import Lib2(Parser, parse)
+import Lib2(State, emptyState, inventory)
+import Parsers
 import Control.Applicative ((<|>), Alternative (many))
 import Control.Monad(forever)
 import System.Directory (doesFileExist)
@@ -51,8 +52,8 @@ storageOpLoop storageOpChannel = forever $ do
 fileName :: String
 fileName = "state.txt"
 
-data Statements = Batch [Lib2.Query] |
-               Single Lib2.Query
+data Statements = Batch [Query] |
+               Single Query
                deriving (Show, Eq)
 
 data Command = StatementCommand Statements |
@@ -67,29 +68,29 @@ parseCommand = parse (StatementCommand <$> statements <|> parseLoad <|> parseSav
 -- | Parses the "load" command.
 parseLoad :: Parser Command
 parseLoad = do
-    _ <- Lib2.parseString "load"
+    _ <- parseString "load"
     return LoadCommand
 
 --Parses the "save" command
 parseSave :: Parser Command
 parseSave = do
-    _ <- Lib2.parseString "save"
+    _ <- parseString "save"
     return SaveCommand
 
 -- | Parses Statement.
 -- Must be used in parseCommand.
 -- Reuse Lib2 as much as you can.
--- You can change Lib2.parseQuery signature if needed.
+-- You can change parseQuery signature if needed.
 parseStatements :: String -> Either String (Statements, String)
 parseStatements = parse statements
 
 
 -- | Converts program's state into Statements
 -- (probably a batch, but might be a single query)
-marshallState :: Lib2.State -> Statements
+marshallState :: State -> Statements
 marshallState state =
     let
-        instrumentQueries = map itemToQuery (Lib2.inventory state)
+        instrumentQueries = map itemToQuery (inventory state)
     in
         -- If there are multiple queries, return a Batch
         if length instrumentQueries > 1
@@ -97,11 +98,11 @@ marshallState state =
         -- If there's only one query, return a Single
         else Single (head instrumentQueries)
 
--- Convert each Item to its corresponding Lib2.Query
-itemToQuery :: Lib2.Item -> Lib2.Query
-itemToQuery (Lib2.GuitarItem guitar) = Lib2.AddGuitar guitar
-itemToQuery (Lib2.AmplifierItem amplifier) = Lib2.AddAmplifier amplifier
-itemToQuery (Lib2.AccessoryItem accessory) = Lib2.AddAccessory accessory
+-- Convert each Item to its corresponding Query
+itemToQuery :: Item -> Query
+itemToQuery (GuitarItem guitar) = AddGuitar guitar
+itemToQuery (AmplifierItem amplifier) = AddAmplifier amplifier
+itemToQuery (AccessoryItem accessory) = AddAccessory accessory
 
 -- | Renders Statements into a String which
 -- can be parsed back into Statements by parseStatements
@@ -113,57 +114,57 @@ renderStatements :: Statements -> String
 renderStatements (Single query) = renderQuery query
 renderStatements (Batch queries) = "BEGIN\n" ++ concatMap ((++ ";\n") . renderQuery) queries ++ "END\n"
 
-renderQuery :: Lib2.Query -> String
-renderQuery (Lib2.AddGuitar guitar) =
+renderQuery :: Query -> String
+renderQuery (AddGuitar guitar) =
     "AddGuitar(" ++ renderGuitar guitar ++ ")"
-renderQuery (Lib2.AddAmplifier amplifier) =
+renderQuery (AddAmplifier amplifier) =
     "AddAmplifier(" ++ renderAmplifier amplifier ++ ")"
-renderQuery (Lib2.AddAccessory accessory) =
+renderQuery (AddAccessory accessory) =
     "AddAccessory(" ++ renderAccessory accessory ++ ")"
-renderQuery Lib2.ViewInventory =
+renderQuery ViewInventory =
     "ViewInventory"
-renderQuery Lib2.TestGuitars =
+renderQuery TestGuitars =
     "TestGuitars"
 
-renderGuitar :: Lib2.Guitar -> String
+renderGuitar :: Guitar -> String
 renderGuitar guitar =
-    show(Lib2.guitarId guitar) ++ "," ++
-    Lib2.guitarName guitar ++ "," ++
-    show (Lib2.guitarPrice guitar) ++ "," ++
-    show (Lib2.guitarStock guitar) ++ "," ++
-    Lib2.guitarType guitar ++ "," ++
-    renderRelatedGuitar (Lib2.relatedGuitar guitar)
+    show(guitarId guitar) ++ "," ++
+    guitarName guitar ++ "," ++
+    show (guitarPrice guitar) ++ "," ++
+    show (guitarStock guitar) ++ "," ++
+    guitarType guitar ++ "," ++
+    renderRelatedGuitar (relatedGuitar guitar)
 
 -- Render the related guitar if it exists
-renderRelatedGuitar :: Maybe Lib2.Guitar -> String
+renderRelatedGuitar :: Maybe Guitar -> String
 renderRelatedGuitar Nothing = "none"
 renderRelatedGuitar (Just relatedGuitar) =
     "Guitar(" ++ renderGuitar relatedGuitar ++ ")"
 
-renderAmplifier :: Lib2.Amplifier -> String
+renderAmplifier :: Amplifier -> String
 renderAmplifier amplifier =
-    show(Lib2.amplifierId amplifier) ++ "," ++
-    Lib2.amplifierName amplifier ++ "," ++
-    show (Lib2.amplifierPrice amplifier) ++ "," ++
-    show (Lib2.amplifierStock amplifier) ++ "," ++
-    Lib2.amplifierType amplifier ++ "," ++
-    renderRelatedAmplifier (Lib2.relatedAmplifier amplifier)
+    show(amplifierId amplifier) ++ "," ++
+    amplifierName amplifier ++ "," ++
+    show (amplifierPrice amplifier) ++ "," ++
+    show (amplifierStock amplifier) ++ "," ++
+    amplifierType amplifier ++ "," ++
+    renderRelatedAmplifier (relatedAmplifier amplifier)
 
-renderRelatedAmplifier :: Maybe Lib2.Amplifier -> String
+renderRelatedAmplifier :: Maybe Amplifier -> String
 renderRelatedAmplifier Nothing = "none"
 renderRelatedAmplifier (Just relatedAmplifier) =
     "Amplifier(" ++ renderAmplifier relatedAmplifier ++ ")"
 
-renderAccessory :: Lib2.Accessory -> String
+renderAccessory :: Accessory -> String
 renderAccessory accessory =
-    show(Lib2.accessoryId accessory) ++ "," ++
-    Lib2.accessoryName accessory ++ "," ++
-    show (Lib2.accessoryPrice accessory) ++ "," ++
-    show (Lib2.accessoryStock accessory) ++ "," ++
-    Lib2.accessoryType accessory ++ "," ++
-    renderRelatedAccessory (Lib2.relatedAccessory accessory)
+    show(accessoryId accessory) ++ "," ++
+    accessoryName accessory ++ "," ++
+    show (accessoryPrice accessory) ++ "," ++
+    show (accessoryStock accessory) ++ "," ++
+    accessoryType accessory ++ "," ++
+    renderRelatedAccessory (relatedAccessory accessory)
 
-renderRelatedAccessory :: Maybe Lib2.Accessory -> String
+renderRelatedAccessory :: Maybe Accessory -> String
 renderRelatedAccessory Nothing = "none"
 renderRelatedAccessory (Just relatedAccessory) =
     "Accessory(" ++ renderAccessory relatedAccessory ++ ")"
@@ -178,7 +179,7 @@ renderRelatedAccessory (Just relatedAccessory) =
 -- State update must be executed atomically (STM).
 -- Right contains an optional message to print, updated state
 -- is stored in transactinal variable
-stateTransition :: TVar Lib2.State -> Command -> Chan StorageOp ->
+stateTransition :: TVar State -> Command -> Chan StorageOp ->
                    IO (Either String (Maybe String))
 stateTransition stateVar command ioChan =
     case command of
@@ -192,7 +193,7 @@ stateTransition stateVar command ioChan =
 
         --load state from file
         LoadCommand -> do
-            atomically $ writeTVar stateVar Lib2.emptyState
+            atomically $ writeTVar stateVar emptyState
             responseChan <- newChan
             writeChan ioChan (Load responseChan)
             maybeContent <- readChan responseChan
@@ -205,7 +206,7 @@ stateTransition stateVar command ioChan =
         StatementCommand st -> do
             atomically $ atomicStatements stateVar st
 
-transitionThroughList :: Lib2.State -> [Lib2.Query] -> Either String (Maybe String, Lib2.State)
+transitionThroughList :: State -> [Query] -> Either String (Maybe String, State)
 transitionThroughList _ [] = Left "Empty query list"
 transitionThroughList state (query:remaining) =
   case Lib2.stateTransition state query of
@@ -232,19 +233,19 @@ atomicStatements stateVar statement = do
         Right (message, newState) -> writeTVar stateVar newState >> return (Right message)
         Left err -> return $ Left err
     Single query ->
-      case Lib2.stateTransition currentState query of
+      case  Lib2.stateTransition currentState query of
         Right (message, newState) -> writeTVar stateVar newState >> return (Right message)
         Left err -> return $ Left err
 
 
 statements :: Parser Statements
 statements = ( do
-    _ <- Lib2.parseString "BEGIN\n"
+    _ <- parseString "BEGIN\n"
     statement <- many (do
-                    statement <- Lib2.query
-                    _ <- Lib2.parseString ";\n"
+                    statement <- query
+                    _ <- parseString ";\n"
                     return statement)
-    _ <- Lib2.parseString "END\n"
+    _ <- parseString "END\n"
     return $ Batch statement
     )
-        <|> (Single <$> Lib2.query)
+        <|> (Single <$> query)

@@ -11,6 +11,7 @@ import Data.Ord
 import Lib1 qualified
 import Lib2 qualified
 import Lib3 qualified
+import Parsers
 
 main :: IO ()
 main = defaultMain tests
