@@ -15,12 +15,14 @@ module Parsers
     parseString
     ) where
 
-import Data.Char as C
-import Data.List as L
-import Control.Applicative (Alternative ((<|>)))
-import GHC.Base (Alternative(empty))
+import Control.Monad.Trans.Class (lift)
+import Control.Monad.Trans.Except
+import Control.Monad.State
+import Data.Char (isAlpha, isDigit)
+import Data.List (takeWhile, dropWhile)
+import Control.Applicative (Alternative, (<|>))
 
-newtype Parser a = Parser { parse :: String -> Either String (a, String) }
+newtype Parser a = Parser { parse :: ExceptT String (State String) a }
 
 data Query = 
     AddGuitar Guitar |
@@ -61,37 +63,30 @@ data Accessory = AccessoryData {
   } deriving (Show, Eq)
 
 instance Functor Parser where
-  fmap f (Parser p) = Parser $ \input -> 
-    case p input of
-      Left err -> Left err
-      Right (result, rest) -> Right (f result, rest)
+  fmap :: (a -> b) -> Parser a -> Parser b
+  fmap f (Parser p) = Parser (fmap f p)
 
 instance Applicative Parser where
-  pure x = Parser $ \input -> Right (x, input)
-  (Parser pf) <*> (Parser p) = Parser $ \input -> 
-    case pf input of
-      Left err -> Left err
-      Right (f, rest) -> 
-        case p rest of
-          Left err' -> Left err'
-          Right (result, rest') -> Right (f result, rest')
+  pure :: a -> Parser a
+  pure x = Parser (pure x)
+
+  (<*>) :: Parser (a -> b) -> Parser a -> Parser b
+  (Parser pf) <*> (Parser p) = Parser (pf <*> p)
 
 instance Alternative Parser where
-    empty :: Parser a
-    empty = Parser $ \input -> Left $ "Could not parse " ++ input
-    (<|>) :: Parser a -> Parser a -> Parser a
-    p1 <|> p2 = Parser $ \inp ->
-        case parse p1 inp of
-            Right r1 -> Right r1
-            Left e1 -> case parse p2 inp of
-                            Right r2 -> Right r2
-                            Left e2 -> Left e2
+  empty :: Parser a
+  empty = Parser $ throwE "Parsing failed"
+
+  (<|>) :: Parser a -> Parser a -> Parser a
+  (Parser p1) <|> (Parser p2) = Parser $ ExceptT $ do
+    s <- get
+    case runState (runExceptT p1) s of
+      (Left _, _) -> runState (runExceptT p2) s
+      success -> success
                             
 instance Monad Parser where
-  (Parser p) >>= f = Parser $ \input -> 
-    case p input of
-      Left err -> Left err
-      Right (result, rest) -> parse (f result) rest
+  (>>=) :: Parser a -> (a -> Parser b) -> Parser b
+  (Parser p) >>= f = Parser $ p >>= (parse . f)
 
 query :: Parser Query
 query = parseAddGuitar <|> parseAddAccessory <|> parseViewInventory <|> parseTestGuitars <|> parseAddAmplifier
@@ -259,30 +254,31 @@ parseNoneAccessory = do
     return Nothing
 
 parseNumber :: Parser Int
-parseNumber = Parser $ \input ->
-    let
-        digits = L.takeWhile C.isDigit input
-        rest = drop (length digits) input
-    in
-        case digits of
-            [] -> Left "not a number"
-            _ -> Right (read digits, rest)
+parseNumber = Parser $ ExceptT $ state $ \input ->
+  let digits = takeWhile isDigit input
+      rest = drop (length digits) input
+  in if not (null digits)
+     then Right (read digits, rest)
+     else throwE $ "Expected a number"
 
 parseChar :: Char -> Parser Char
-parseChar c = Parser $ \input ->
+parseChar a = do
+    input <- lift get
     case input of
-        [] -> Left ("Expected '" ++ [c] ++ "', but input is empty")
-        (h:t) -> if c == h then Right (c, t) else Left ("Expected '" ++ [c] ++ "', but found '" ++ [h] ++ "'")
+        [] -> throwE "Empty input"
+        (x:xs) -> if x == a
+            then lift $ put xs >> return x
+            else
+                throwE $ a:" is not found"
 
 parseWord :: Parser String
-parseWord = Parser $ \str ->
-    let
-        word = L.takeWhile C.isAlpha str
-        rest = L.dropWhile C.isAlpha str
-    in
-        if not (null word)
-        then Right (word, rest)
-        else Left "Expected a word"
+parseWord = do
+  input <- get
+  let word = takeWhile isAlpha input
+      rest = dropWhile isAlpha input
+  if not (null word)
+    then put rest >> return word
+    else throwE "Expected a word"
 
 parseString :: String -> Parser String
 parseString [] = return []
